@@ -62,4 +62,50 @@ def get_realtime_quote(ticker):
     return result
 
 
+def calculate_signal_and_pnl(df):
+    df["signal"] = 0
+    df["pnl"] = 0
+    df["position"] = 0
+    position = 0
+    for i in range(1, len(df) - 1):
+        current_price = df.iloc[i]["price"]
+        avg_price = df.iloc[i]["S_avg"]
+        sigma = df.iloc[i]["sigma"]
 
+        if current_price > (avg_price + sigma):
+            df.at[i, "signal"] = 1
+            position += 1
+            df.at[i + 1, "position"] = position
+        elif current_price < (avg_price - sigma):
+            df.at[i, "signal"] = -1
+            position -= 1
+            df.at[i + 1, "position"] = position
+        else:
+            df.at[i, "signal"] = 0
+            df.at[i + 1, "position"] = position
+
+    for i in range(1, len(df)):
+        previous_position = df.iloc[i - 1]["position"]
+        current_price = df.iloc[i]["price"]
+        previous_price = df.iloc[i - 1]["price"]
+        pnl = previous_position * ((current_price / previous_price) - 1)
+        df.at[i, "pnl"] = round(pnl, 2)
+
+    return df
+
+
+def process_tickers(tickers, interval):
+    for symbol in tickers:
+        window = 24 * 60 // interval
+        df = get_alpha_vantage_historical_data(symbol, interval=interval)
+        df["S_avg"] = (
+            df["price"].rolling(window=window).mean().apply(lambda x: round(x, 2))
+        )
+        df["sigma"] = df["price"].rolling(window=window).std()
+        df = calculate_signal_and_pnl(df)
+
+        # Saving to csv file
+        df[["datetime", "price", "signal", "pnl"]].to_csv(
+            f"../data/{symbol}_result.csv", index=False
+        )
+        df[["datetime", "price"]].to_csv(f"../data/{symbol}_price.csv", index=False)
