@@ -33,7 +33,8 @@ def get_alpha_vantage_historical_data(ticker, interval):
         }
 
         r = requests.get(CSV_URL, params=params)
-
+        if r.status_code == 200 and "Invalid API call" in r.text:
+            return pd.DataFrame()
         csvStringIO = StringIO(r.content.decode("utf-8"))
 
         df = pd.read_csv(
@@ -44,10 +45,10 @@ def get_alpha_vantage_historical_data(ticker, interval):
             "datetime",
             ascending=True,
         ).reset_index(drop=True)
-
         return df
     except Exception as e:
         logging.error(e)
+        return pd.DataFrame()
 
 
 def get_realtime_quote(ticker):
@@ -100,19 +101,19 @@ def calculate_avg_and_sigma(df, interval):
     return df
 
 
-def add_tickers(tickers, interval):
+def add_ticker(ticker, interval):
     logging.info("Getting historical data from Alpha Vantage API...")
-    for symbol in tickers:
-        window = 24 * 60 // interval
-        df = get_alpha_vantage_historical_data(symbol, interval=interval)
-        df = calculate_avg_and_sigma(df, interval=interval)
-        df = calculate_signal_and_pnl(df)
+    df = get_alpha_vantage_historical_data(ticker, interval=interval)
+    if df.shape[0] == 0:
+        return "Invalid ticker"
+    df = calculate_avg_and_sigma(df, interval=interval)
+    df = calculate_signal_and_pnl(df)
 
-        # Saving to csv file
-        df[["datetime", "price", "signal", "pnl"]].to_csv(
-            f"data/{symbol}_result.csv", index=False
-        )
-        df[["datetime", "price"]].to_csv(f"data/{symbol}_price.csv", index=False)
+    # Saving to csv file
+    df[["datetime", "price", "signal", "pnl"]].to_csv(
+        f"data/{ticker}_result.csv", index=False
+    )
+    df[["datetime", "price"]].to_csv(f"data/{ticker}_price.csv", index=False)
 
 
 def convert_utc_datetime(utc_datetime):
