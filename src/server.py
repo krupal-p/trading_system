@@ -1,12 +1,19 @@
 import logging
 from datetime import datetime, tzinfo
 import argparse
+import sys
+from os import walk
 
-
+import pandas as pd
 from flask import Flask
-from flask_restful import Resource, Api
-from flask_routes import HomePage
+from flask_restful import Api
+from flask_routes import HomePage, Price, Signal, DelTicker, AddTicker, Reset
 
+from utils import (
+    get_alpha_vantage_historical_data,
+    calculate_signal_and_pnl,
+    add_tickers,
+)
 
 logging.basicConfig(
     filename=f"logs/server_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
@@ -47,17 +54,39 @@ except:
     print("Incorrect arguments passed")
 
 
-def main(port=8000):
+def main(args, port=8000):
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(HomePage, "/")
+    api.add_resource(Price, "/price/<query_datetime>")
+    api.add_resource(Signal, "/signal/<query_datetime>")
+    api.add_resource(AddTicker, "/add_ticker/<ticker>")
+    api.add_resource(DelTicker, "/del_ticker/<ticker>")
+    api.add_resource(Reset, "/reset")
 
     logging.info("Starting trading server")
     app.run(debug=True, port=port)
 
 
+def program_start(args, reload_symbol):
+    add_tickers(
+        tickers=[ticker for ticker in args.tickers if ticker != reload_symbol],
+        interval=args.minutes,
+    )
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args.tickers)
+    print(args)
+    try:
+        data_files = list(walk("data/"))[0][2]
+        if args.reload in data_files:
+            reload_symbol = args.reload.split("_")[0]
+        else:
+            reload_symbol = None
 
-    main()
+        program_start(args=args, reload_symbol=reload_symbol)
+
+        main(args, port=args.port)
+    except KeyboardInterrupt:
+        logging.error("Server Terminated")
