@@ -7,7 +7,7 @@ try:
         "-t",
         "--tickers",
         nargs="+",
-        default=["AAPL"],
+        default=["aapl"],
         help="If specified, download data for all the US tickers specified. If this option is not specified, the server will download data for ticker 'AAPL' (Max of 3 tickers)",
     )
     parser.add_argument(

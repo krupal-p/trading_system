@@ -78,6 +78,7 @@ class Signal(Resource):
 
 class DelTicker(Resource):
     def get(self, ticker):
+        ticker = ticker.lower()
         if ticker in data.keys():
             del data[ticker]
             data_files = [file for file in list(walk("data/"))[0][2] if ticker in file]
@@ -95,6 +96,7 @@ class DelTicker(Resource):
 
 class AddTicker(Resource):
     def get(self, ticker):
+        ticker = ticker.lower()
         try:
             add_tickers([ticker], args.minutes)
             data[ticker] = pd.read_csv(f"data/{ticker}_result.csv", header=0)
@@ -211,7 +213,8 @@ def server_start_up_tasks():
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-
+    args.reload = args.reload.lower()
+    args.tickers = [ticker.lower() for ticker in args.tickers]
     try:
         data_files = list(walk("data/"))[0][2]
         if args.reload in data_files:
