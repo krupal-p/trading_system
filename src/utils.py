@@ -54,7 +54,7 @@ def get_alpha_vantage_historical_data(ticker, interval):
 def get_realtime_quote(ticker):
     FINNHUB_API_KEY = "ca3sllqad3ia58rfhmjg"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
-    quote = finnhub_client.quote(ticker)
+    quote = finnhub_client.quote(ticker.upper())
     result = {
         "datetime": datetime.fromtimestamp(quote["t"]),
         "price": quote["c"],
