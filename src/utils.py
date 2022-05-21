@@ -32,7 +32,6 @@ def get_alpha_vantage_historical_data(ticker, interval):
         }
 
         r = requests.get(CSV_URL, params=params)
-        print(r.url)
 
         csvStringIO = StringIO(r.content.decode("utf-8"))
 
@@ -94,7 +93,8 @@ def calculate_signal_and_pnl(df):
     return df
 
 
-def process_tickers(tickers, interval):
+def add_tickers(tickers, interval):
+    logging.info("Getting historical data from Alpha Vantage API...")
     for symbol in tickers:
         window = 24 * 60 // interval
         df = get_alpha_vantage_historical_data(symbol, interval=interval)
@@ -106,6 +106,6 @@ def process_tickers(tickers, interval):
 
         # Saving to csv file
         df[["datetime", "price", "signal", "pnl"]].to_csv(
-            f"../data/{symbol}_result.csv", index=False
+            f"data/{symbol}_result.csv", index=False
         )
-        df[["datetime", "price"]].to_csv(f"../data/{symbol}_price.csv", index=False)
+        df[["datetime", "price"]].to_csv(f"data/{symbol}_price.csv", index=False)
