@@ -93,15 +93,19 @@ def calculate_signal_and_pnl(df):
     return df
 
 
+def calculate_avg_and_sigma(df, interval):
+    window = 24 * 60 // interval
+    df["S_avg"] = df["price"].rolling(window=window).mean().apply(lambda x: round(x, 2))
+    df["sigma"] = df["price"].rolling(window=window).std()
+    return df
+
+
 def add_tickers(tickers, interval):
     logging.info("Getting historical data from Alpha Vantage API...")
     for symbol in tickers:
         window = 24 * 60 // interval
         df = get_alpha_vantage_historical_data(symbol, interval=interval)
-        df["S_avg"] = (
-            df["price"].rolling(window=window).mean().apply(lambda x: round(x, 2))
-        )
-        df["sigma"] = df["price"].rolling(window=window).std()
+        df = calculate_avg_and_sigma(df, interval=interval)
         df = calculate_signal_and_pnl(df)
 
         # Saving to csv file
