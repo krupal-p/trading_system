@@ -21,6 +21,7 @@ try:
         "-r",
         "--reload",
         type=str,
+        default="",
         help="If specified, the server will load historical data from the reload file instead of querying from Source 1",
     )
     parser.add_argument(
