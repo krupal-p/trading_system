@@ -1,60 +1,159 @@
+from ast import arg
 import logging
 from datetime import datetime, tzinfo
-import argparse
-import sys
+import sys, os
 from os import walk
 
 import pandas as pd
 from flask import Flask
-from flask_restful import Api
-from flask_routes import HomePage, Price, Signal, DelTicker, AddTicker, Reset
+from flask_restful import Api, Resource
+
+
+from server_argument_parser import parser
 
 from utils import (
-    get_alpha_vantage_historical_data,
-    calculate_signal_and_pnl,
     add_tickers,
+    get_realtime_quote,
+    calculate_signal_and_pnl,
+    calculate_avg_and_sigma,
+    convert_utc_datetime,
+    get_price,
+    get_signal,
 )
+import threading, time, requests
+
+
+if not os.path.exists("data/"):
+    os.makedirs("data/")
+if not os.path.exists("logs/"):
+    os.makedirs("logs/")
 
 logging.basicConfig(
     filename=f"logs/server_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
     level=logging.INFO,
 )
 
-parser = argparse.ArgumentParser(description="Process arguments when server starts")
-try:
-    parser.add_argument(
-        "-t",
-        "--tickers",
-        nargs="+",
-        default=["AAPL"],
-        help="If specified, download data for all the US tickers specified. If this option is not specified, the server will download data for ticker 'AAPL' (Max of 3 tickers)",
-    )
-    parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=8000,
-        help="It specifies the network port for the server. This argument is optional, and default port is 8000.",
-    )
-    parser.add_argument(
-        "-r",
-        "--reload",
-        type=str,
-        help="If specified, the server will load historical data from the reload file instead of querying from Source 1",
-    )
-    parser.add_argument(
-        "-m",
-        "--minutes",
-        type=int,
-        default=5,
-        choices=[5, 15, 30, 60],
-        help="It specifies the sample data being downloaded. It only accepts (5,15,30,60) as inputs, and default value is 5.",
-    )
-except:
-    print("Incorrect arguments passed")
+
+class HomePage(Resource):
+    def get(self):
+        return "Welcome to the trading server"
 
 
-def main(args, port=8000):
+class Price(Resource):
+    def get(self, query_datetime):
+        if query_datetime.lower() == "now":
+            query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        else:
+            query_datetime = convert_utc_datetime(query_datetime)
+        print(query_datetime)
+
+        response = {}
+
+        for symbol in data:
+            response[symbol] = get_price(data[symbol], query_datetime=query_datetime)
+
+        values = list(set(response.values()))
+        if len(values) == 1 and values[0] == "No Data":
+            return "Server has no data"
+        else:
+            return response
+
+
+class Signal(Resource):
+    def get(self, query_datetime):
+        if query_datetime.lower() == "now":
+            query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        else:
+            query_datetime = convert_utc_datetime(query_datetime)
+        print(query_datetime)
+
+        response = {}
+
+        for symbol in data:
+            response[symbol] = get_signal(data[symbol], query_datetime=query_datetime)
+
+        values = list(set(response.values()))
+        if len(values) == 1 and values[0] == "No Data":
+            return "Server has no data"
+        else:
+            return response
+
+
+class DelTicker(Resource):
+    def get(self, ticker):
+        if ticker in data.keys():
+            del data[ticker]
+            data_files = [file for file in list(walk("data/"))[0][2] if ticker in file]
+            for file in data_files:
+                if os.path.exists(f"data/{file}"):
+                    os.remove(f"data/{file}")
+                else:
+                    logging.error(
+                        f"Historical data file not found on server for ticker: {ticker}"
+                    )
+            return 0
+        elif ticker not in data.keys():
+            return 2
+
+
+class AddTicker(Resource):
+    def get(self, ticker):
+        try:
+            add_tickers([ticker], args.minutes)
+            data[ticker] = pd.read_csv(f"data/{ticker}_result.csv", header=0)
+            return 0
+        except Exception as e:
+            logging.error("Error while adding ticker")
+            print(e)
+            return 2
+
+
+class Reset(Resource):
+    def get(self):
+        global data
+        data = dict()
+        try:
+            data_files = list(walk("data/"))[0][2]
+            for file in data_files:
+                if os.path.exists(f"data/{file}"):
+                    os.remove(f"data/{file}")
+                else:
+                    logging.error(f"Error resetting server data")
+            return 0
+        except Exception as e:
+            logging.error("Error while resetting server data")
+            return 1
+
+
+def load_data():
+    data = dict()
+    data_files = [file for file in list(walk("data/"))[0][2] if "_result.csv" in file]
+    for file in data_files:
+        symbol = file.split("_")[0]
+        df = pd.read_csv("data/" + file, header=0)
+        data[symbol] = df
+    print(data)
+    return data
+
+
+def update_data():
+    interval = args.minutes
+    print(data.keys())
+    for symbol in data:
+        realtime_quote = get_realtime_quote(symbol)
+
+        df = data[symbol]
+        # appends realtime quote to existing interal data structure
+        df.at[df.shape[0] + 1, ("datetime", "price")] = (
+            realtime_quote["datetime"],
+            realtime_quote["price"],
+        )
+        df = calculate_avg_and_sigma(df, interval=interval)
+        df = calculate_signal_and_pnl(df)
+        data[symbol] = df
+
+
+def main():
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(HomePage, "/")
@@ -64,11 +163,42 @@ def main(args, port=8000):
     api.add_resource(DelTicker, "/del_ticker/<ticker>")
     api.add_resource(Reset, "/reset")
 
+    # @app.before_first_request
+    # def activate_job():
+    #     def run_job():
+    #         while True:
+    #             print("Run recurring task")
+    #             time.sleep(3)
+
+    #     thread = threading.Thread(target=run_job)
+    #     thread.start()
+
+    # def start_runner():
+    #     def start_loop():
+    #         not_started = True
+    #         while not_started:
+    #             print("In start loop")
+    #             try:
+    #                 r = requests.get(f"http://127.0.0.1:{args.port}/")
+    #                 if r.status_code == 200:
+    #                     print("Server started, quiting start_loop")
+    #                     not_started = False
+    #                 print(r.status_code)
+    #             except:
+    #                 print("Server not yet started")
+    #             time.sleep(2)
+
+    #     print("Started runner")
+    #     thread = threading.Thread(target=start_loop)
+    #     thread.start()
+
+    # start_runner()
+
     logging.info("Starting trading server")
-    app.run(debug=True, port=port)
+    app.run(debug=True, port=args.port)
 
 
-def program_start(args, reload_symbol):
+def server_start_up_tasks():
     add_tickers(
         tickers=[ticker for ticker in args.tickers if ticker != reload_symbol],
         interval=args.minutes,
@@ -85,8 +215,8 @@ if __name__ == "__main__":
         else:
             reload_symbol = None
 
-        program_start(args=args, reload_symbol=reload_symbol)
-
-        main(args, port=args.port)
+        server_start_up_tasks()
+        data = load_data()
+        main()
     except KeyboardInterrupt:
         logging.error("Server Terminated")
