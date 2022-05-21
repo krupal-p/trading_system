@@ -187,7 +187,7 @@ def main():
                     if r.status_code == 200:
                         not_started = False
                 except:
-                time.sleep(2)
+                    time.sleep(2)
 
         thread = threading.Thread(target=start_loop)
         thread.start()
