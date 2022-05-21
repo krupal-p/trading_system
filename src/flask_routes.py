@@ -1,11 +1,16 @@
 from os import walk
-from re import S
-
+import os
 import time
 from flask_restful import Resource
 import pandas as pd
 from datetime import datetime
 from dateutil import tz
+
+import logging
+
+logging = logging.getLogger()
+
+from utils import get_alpha_vantage_historical_data, get_realtime_quote
 
 
 def load_data():
@@ -19,10 +24,6 @@ def load_data():
     return data
 
 
-def update_data():
-    pass
-
-
 def convert_utc_datetime(utc_datetime):
     """Convert UTC datetime to New York Time
 
@@ -32,9 +33,6 @@ def convert_utc_datetime(utc_datetime):
     Returns:
         str: New York datetime in str format YYYY-MM-DD-HH:MM
     """
-    from datetime import datetime
-    from dateutil import tz
-
     from_zone = from_zone = tz.gettz("UTC")
     to_zone = tz.gettz("America/New_York")
     return (
@@ -120,11 +118,25 @@ class Signal(Resource):
 
 
 class DelTicker(Resource):
-    pass
+    def get(self, ticker):
+        if ticker in data.keys():
+            del data[ticker]
+            data_files = [file for file in list(walk("data/"))[0][2] if ticker in file]
+            for file in data_files:
+                if os.path.exists(f"data/{file}"):
+                    os.remove(f"data/{file}")
+                else:
+                    logging.error(
+                        f"Historical data file not found on server for ticker: {ticker}"
+                    )
+            return 0
+        elif ticker not in data.keys():
+            return 2
 
 
 class AddTicker(Resource):
-    pass
+    def get(self, ticker):
+        print(ticker)
 
 
 class Reset(Resource):
