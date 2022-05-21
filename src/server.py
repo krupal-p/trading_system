@@ -1,6 +1,5 @@
-from ast import arg
 import logging
-from datetime import datetime, tzinfo
+from datetime import datetime, timedelta
 import sys, os
 from os import walk
 
@@ -45,7 +44,6 @@ class Price(Resource):
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
         else:
             query_datetime = convert_utc_datetime(query_datetime)
-        print(query_datetime)
 
         response = {}
 
@@ -65,7 +63,6 @@ class Signal(Resource):
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
         else:
             query_datetime = convert_utc_datetime(query_datetime)
-        print(query_datetime)
 
         response = {}
 
@@ -132,14 +129,12 @@ def load_data():
         symbol = file.split("_")[0]
         df = pd.read_csv("data/" + file, header=0)
         data[symbol] = df
-    print(data)
     return data
 
 
 def update_data():
-    interval = args.minutes
-    print(data.keys())
     for symbol in data:
+        print("Getting realtime data for ", symbol)
         realtime_quote = get_realtime_quote(symbol)
 
         df = data[symbol]
@@ -148,7 +143,8 @@ def update_data():
             realtime_quote["datetime"],
             realtime_quote["price"],
         )
-        df = calculate_avg_and_sigma(df, interval=interval)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+        df = calculate_avg_and_sigma(df, interval=args.minutes)
         df = calculate_signal_and_pnl(df)
         data[symbol] = df
 
@@ -163,36 +159,43 @@ def main():
     api.add_resource(DelTicker, "/del_ticker/<ticker>")
     api.add_resource(Reset, "/reset")
 
-    # @app.before_first_request
-    # def activate_job():
-    #     def run_job():
-    #         while True:
-    #             print("Run recurring task")
-    #             time.sleep(3)
+    @app.before_first_request
+    def activate_job():
+        def run_job():
+            while True:
+                global last_data_update
+                next_data_update = last_data_update + timedelta(
+                    seconds=args.minutes * 60
+                )
+                if last_data_update < next_data_update:
+                    print("Updating realtime data for subscribed tickers")
+                    update_data()
+                    last_data_update = datetime.now()
+                    time.sleep(args.minutes * 60)
 
-    #     thread = threading.Thread(target=run_job)
-    #     thread.start()
+        thread = threading.Thread(target=run_job)
+        thread.start()
 
-    # def start_runner():
-    #     def start_loop():
-    #         not_started = True
-    #         while not_started:
-    #             print("In start loop")
-    #             try:
-    #                 r = requests.get(f"http://127.0.0.1:{args.port}/")
-    #                 if r.status_code == 200:
-    #                     print("Server started, quiting start_loop")
-    #                     not_started = False
-    #                 print(r.status_code)
-    #             except:
-    #                 print("Server not yet started")
-    #             time.sleep(2)
+    def start_runner():
+        def start_loop():
+            not_started = True
+            while not_started:
+                print("In start loop")
+                try:
+                    r = requests.get(f"http://127.0.0.1:{args.port}/")
+                    if r.status_code == 200:
+                        print("Server started, quiting start_loop")
+                        not_started = False
+                    print(r.status_code)
+                except:
+                    print("Server not yet started")
+                time.sleep(2)
 
-    #     print("Started runner")
-    #     thread = threading.Thread(target=start_loop)
-    #     thread.start()
+        print("Started runner")
+        thread = threading.Thread(target=start_loop)
+        thread.start()
 
-    # start_runner()
+    start_runner()
 
     logging.info("Starting trading server")
     app.run(debug=True, port=args.port)
@@ -208,6 +211,7 @@ def server_start_up_tasks():
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
+
     try:
         data_files = list(walk("data/"))[0][2]
         if args.reload in data_files:
@@ -217,6 +221,7 @@ if __name__ == "__main__":
 
         server_start_up_tasks()
         data = load_data()
+        last_data_update = datetime.now()
         main()
     except KeyboardInterrupt:
         logging.error("Server Terminated")
