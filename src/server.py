@@ -11,7 +11,7 @@ from flask_restful import Api, Resource
 from server_argument_parser import parser
 
 from utils import (
-    add_tickers,
+    add_ticker,
     get_realtime_quote,
     calculate_signal_and_pnl,
     calculate_avg_and_sigma,
@@ -92,19 +92,22 @@ class DelTicker(Resource):
             return 0
         elif ticker not in data.keys():
             return 2
+        else:
+            return 1
 
 
 class AddTicker(Resource):
     def get(self, ticker):
         ticker = ticker.lower()
         try:
-            add_tickers([ticker], args.minutes)
+            add_ticker_status = add_ticker(ticker, args.minutes)
+            if add_ticker_status == "Invalid ticker":
+                return 2
             data[ticker] = pd.read_csv(f"data/{ticker}_result.csv", header=0)
             return 0
         except Exception as e:
             logging.error("Error while adding ticker")
-            print(e)
-            return 2
+            return 1
 
 
 class Reset(Resource):
@@ -136,10 +139,12 @@ def load_data():
 
 def update_data():
     for symbol in data:
-        logging.info("Getting realtime data for ", symbol)
+        logging.info("Getting realtime data for: %s", symbol)
         realtime_quote = get_realtime_quote(symbol)
-
-        df = data[symbol]
+        try:
+            df = data[symbol]
+        except Exception as e:
+            logging.error(e)
         # appends realtime quote to existing interal data structure
         df.at[df.shape[0] + 1, ("datetime", "price")] = (
             realtime_quote["datetime"],
@@ -199,10 +204,12 @@ def main():
 
 
 def server_start_up_tasks():
-    add_tickers(
-        tickers=[ticker for ticker in args.tickers if ticker != reload_symbol],
-        interval=args.minutes,
-    )
+    tickers = [ticker for ticker in args.tickers if ticker != reload_symbol]
+    for ticker in tickers:
+        add_ticker(
+            ticker=ticker,
+            interval=args.minutes,
+        )
 
 
 if __name__ == "__main__":
