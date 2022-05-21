@@ -1,5 +1,6 @@
 from io import StringIO
 import logging
+from dateutil import tz
 from datetime import datetime
 from operator import index
 import pandas as pd
@@ -113,3 +114,48 @@ def add_tickers(tickers, interval):
             f"data/{symbol}_result.csv", index=False
         )
         df[["datetime", "price"]].to_csv(f"data/{symbol}_price.csv", index=False)
+
+
+def convert_utc_datetime(utc_datetime):
+    """Convert UTC datetime to New York Time
+
+    Args:
+        utc_datetime (str): UTC datetime in str format YYYY-MM-DD-HH:MM
+
+    Returns:
+        str: New York datetime in str format YYYY-MM-DD-HH:MM
+    """
+    from_zone = tz.gettz("UTC")
+    to_zone = tz.gettz("America/New_York")
+    return (
+        datetime.strptime(utc_datetime, "%Y-%m-%d-%H:%M")
+        .replace(tzinfo=from_zone)
+        .astimezone(to_zone)
+        .strftime("%Y-%m-%d-%H:%M")
+    )
+
+
+def get_price(df, query_datetime):
+    current_time = datetime.now().strftime("%Y-%m-%d-%H:%M")
+    price = (
+        df[(df["datetime"] < query_datetime) & (query_datetime <= current_time)]
+        .tail(1)["price"]
+        .values
+    )
+    if len(price) == 1:
+        return price[0]
+    elif len(price) == 0:
+        return "No Data"
+
+
+def get_signal(df, query_datetime):
+    current_time = datetime.now().strftime("%Y-%m-%d-%H:%M")
+    signal = (
+        df[(df["datetime"] < query_datetime) & (query_datetime <= current_time)]
+        .tail(1)["signal"]
+        .values
+    )
+    if len(signal) == 1:
+        return int(signal[0])
+    elif len(signal) == 0:
+        return "No Data"
