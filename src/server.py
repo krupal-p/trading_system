@@ -200,7 +200,7 @@ def main():
     start_runner()
 
     logging.info("Starting trading server")
-    app.run(debug=True, port=args.port)
+    app.run(debug=False, host='0.0.0.0', port=args.port)
 
 
 def server_start_up_tasks():
