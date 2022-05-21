@@ -136,7 +136,7 @@ def load_data():
 
 def update_data():
     for symbol in data:
-        print("Getting realtime data for ", symbol)
+        logging.info("Getting realtime data for ", symbol)
         realtime_quote = get_realtime_quote(symbol)
 
         df = data[symbol]
@@ -207,7 +207,7 @@ def server_start_up_tasks():
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
+    logging.info(args)
     args.reload = args.reload.lower()
     args.tickers = [ticker.lower() for ticker in args.tickers]
     try:
