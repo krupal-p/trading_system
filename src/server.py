@@ -170,8 +170,8 @@ def main():
                     seconds=args.minutes * 60
                 )
                 if last_data_update < next_data_update:
-                    print("Updating realtime data for subscribed tickers")
                     update_data()
+                    logging.info("Updated realtime data for subscribed tickers")
                     last_data_update = datetime.now()
                     time.sleep(args.minutes * 60)
 
@@ -182,18 +182,13 @@ def main():
         def start_loop():
             not_started = True
             while not_started:
-                print("In start loop")
                 try:
                     r = requests.get(f"http://127.0.0.1:{args.port}/")
                     if r.status_code == 200:
-                        print("Server started, quiting start_loop")
                         not_started = False
-                    print(r.status_code)
                 except:
-                    print("Server not yet started")
                 time.sleep(2)
 
-        print("Started runner")
         thread = threading.Thread(target=start_loop)
         thread.start()
 

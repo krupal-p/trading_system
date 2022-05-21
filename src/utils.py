@@ -40,7 +40,6 @@ def get_alpha_vantage_historical_data(ticker, interval):
             csvStringIO, sep=",", header=0, parse_dates={"datetime": ["timestamp"]}
         ).rename(columns={"close": "price"})[["datetime", "price"]]
         df["price"] = df["price"].apply(lambda x: round(x, 2))
-        # df.to_csv(f"../data/{ticker}_price.csv", index=False)
         df = df.sort_values(
             "datetime",
             ascending=True,
