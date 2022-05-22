@@ -1,0 +1,3 @@
+[gmail_credentials]
+gmail_username = *********@gmail.com
+gmail_password = *******

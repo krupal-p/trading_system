@@ -4,6 +4,7 @@ from datetime import datetime
 
 from client_argument_parser import parser
 import requests
+from mail import send_email
 
 
 logging.basicConfig(
@@ -86,12 +87,15 @@ def main():
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
-    if args.server_address and is_valid_server_address(args.server_address):
-        ip_address, port = args.server_address.split(":")
-        base_url = get_base_url(ip_address=ip_address, port=port)
-        r = requests.get(url=base_url + "/", timeout=30)
-        print(r.text)
-    else:
-        base_url = get_base_url()
-    main()
+    logging.info(args)
+    try:
+        if args.server_address and is_valid_server_address(args.server_address):
+            ip_address, port = args.server_address.split(":")
+            base_url = get_base_url(ip_address=ip_address, port=port)
+            r = requests.get(url=base_url + "/", timeout=30)
+            print(r.text)
+        else:
+            base_url = get_base_url()
+        main()
+    except:
+        send_email()
