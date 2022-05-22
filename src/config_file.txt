@@ -1,3 +1,7 @@
 [gmail_credentials]
 gmail_username = *********@gmail.com
 gmail_password = *******
+
+[API_KEYS]
+ALPHA_VANTAGE_API_KEY = 6ZHQHNVQUR40SSMF
+FINNHUB_API_KEY = ca3sllqad3ia58rfhmjg
