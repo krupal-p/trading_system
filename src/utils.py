@@ -142,7 +142,7 @@ def get_price(df, query_datetime):
         df.loc[(df['datetime'] <= query_datetime)].tail(1)["price"].values
     )
     if len(price) == 1:
-        return round(price[0],2)
+        return price[0]
     elif len(price) == 0:
         return "No Data"
 
