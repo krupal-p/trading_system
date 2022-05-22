@@ -6,7 +6,7 @@ from os import walk
 import pandas as pd
 from flask import Flask
 from flask_restful import Api, Resource
-
+from waitress import serve
 
 from server_argument_parser import parser
 
@@ -29,13 +29,15 @@ if not os.path.exists("logs/"):
 
 logging.basicConfig(
     filename=f"logs/server_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt='%Y-%m-%d %H:%M',
     level=logging.INFO,
 )
 
 
 class HomePage(Resource):
     def get(self):
-        return "Welcome to the trading server"
+        return "Connected to trading server"
 
 
 class Price(Resource):
@@ -200,7 +202,8 @@ def main():
     start_runner()
 
     logging.info("Starting trading server")
-    app.run(debug=False, host='0.0.0.0', port=args.port)
+    serve(app, host='0.0.0.0', port = args.port)
+    # app.run(debug=False, host='0.0.0.0', port=args.port)
 
 
 def server_start_up_tasks():
