@@ -8,12 +8,15 @@ import finnhub
 from configparser import ConfigParser
 
 logging = logging.getLogger()
+
+# Loads the config file for API keys
 config = ConfigParser()
 config.read('src/config_file.txt')
 
 def get_alpha_vantage_historical_data(ticker, interval):
-    """Get historical intraday data from Alpha Vantage API. Saves price series to {ticker}_price.csv
-
+    """Get historical intraday data from Alpha Vantage API for given ticker.  
+    Returns empty DataFrame if API rate limit reached or ticker is invalid
+    
     Args:
         ticker (str): Stock symbol
         interval (int): Time interval for intraday prices in minutes
@@ -38,6 +41,9 @@ def get_alpha_vantage_historical_data(ticker, interval):
         r = requests.get(CSV_URL, params=params)
         if r.status_code == 200 and "Invalid API call" in r.text:
             return pd.DataFrame()
+        elif r.status_code == 200 and 'Our standard API call frequency is 5 calls per minute' in r.text:
+            return pd.DataFrame()
+
         csvStringIO = StringIO(r.content.decode("utf-8"))
 
         df = pd.read_csv(
@@ -55,6 +61,14 @@ def get_alpha_vantage_historical_data(ticker, interval):
 
 
 def get_realtime_quote(ticker):
+    """Get realtime quote from Finnhub API for given ticker
+
+    Args:
+        ticker (str): Stock symbol
+
+    Returns:
+        dict: Dictionary with datetime and price as keys and their respective values 
+    """    
     FINNHUB_API_KEY =config['API_KEYS']['FINNHUB_API_KEY']
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     quote = finnhub_client.quote(ticker.upper())
@@ -66,6 +80,14 @@ def get_realtime_quote(ticker):
 
 
 def calculate_signal_and_pnl(df):
+    """Calculates the signal, pnl and position for the DataFrame provided
+
+    Args:
+        df (DataFrame): pandas DataFrame with datetime, price, S_avg and sigma
+
+    Returns:
+        df (DataFrame): Return modified DataFrame with signal, pnl and position
+    """    
     df["signal"] = 0
     df["pnl"] = 0
     df["position"] = 0
@@ -98,6 +120,15 @@ def calculate_signal_and_pnl(df):
 
 
 def calculate_avg_and_sigma(df, interval):
+    """Calculates the rolling 24 hour avg price and sigma
+
+    Args:
+        df (DataFrame): pandas DataFrame wit datetime, price
+        interval (int): Interval of time periods
+
+    Returns:
+        df (DataFrame): Return modified DataFrmae with avg price and sigma
+    """    
     window = 24 * 60 // interval
     df["S_avg"] = df["price"].rolling(window=window).mean().apply(lambda x: round(x, 2))
     df["sigma"] = df["price"].rolling(window=window).std()
@@ -105,6 +136,16 @@ def calculate_avg_and_sigma(df, interval):
 
 
 def add_ticker(ticker, interval):
+    """Gets historical data for ticker at given interval. Calculates S_avg, sigma, signal, pnl and position
+    Saves data to {ticker}_price.csv and {ticker}_result.csv
+
+    Args:
+        ticker (str): Stock symbol
+        interval (int): Interval of time period
+
+    Returns:
+        None: Return None when complete
+    """    
     df = get_alpha_vantage_historical_data(ticker, interval=interval)
     if df.shape[0] == 0:
         return "Invalid ticker"
@@ -138,6 +179,15 @@ def convert_utc_datetime(utc_datetime):
 
 
 def get_price(df, query_datetime):
+    """Gets price for ticker at given query time
+
+    Args:
+        df (DataFrame): pandas DataFrame with datetime, price
+        query_datetime (str): Datetime in YYYY-MM-DD-HH:MM format
+
+    Returns:
+        float or str: Returns price or No Data
+    """    
     price = (
         df.loc[(df['datetime'] <= query_datetime)].tail(1)["price"].values
     )
@@ -148,6 +198,15 @@ def get_price(df, query_datetime):
 
 
 def get_signal(df, query_datetime):
+    """Gets signal for ticker at given query time
+
+    Args:
+        df (DataFrame): pandas DataFrame with datetime, price
+        query_datetime (str): Datetime in YYYY-MM-DD-HH:MM format
+
+    Returns:
+        int or str: Returns signal or No Data
+    """    
     signal = (
         df.loc[(df['datetime'] <= query_datetime)].tail(1)["signal"].values
     )

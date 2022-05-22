@@ -21,12 +21,13 @@ from utils import (
 )
 import threading, time, requests
 
-
+# Create Data and logs folder if they don't already exist
 if not os.path.exists("data/"):
     os.makedirs("data/")
 if not os.path.exists("logs/"):
     os.makedirs("logs/")
 
+# Logger configuration
 logging.basicConfig(
     filename=f"logs/server_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -34,7 +35,7 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-
+# Classes for Flask-restful routes/endpoints
 class HomePage(Resource):
     def get(self):
         return "Connected to trading server"
@@ -134,6 +135,11 @@ class Reset(Resource):
 
 
 def load_data():
+    """Function to load historical data on server startup
+
+    Returns:
+        dict: dictionary with keys are symbol and DataFrame as values
+    """    
     data = dict()
     data_files = [file for file in list(walk("data/"))[0][2] if "_result.csv" in file]
     for file in data_files:
@@ -144,13 +150,21 @@ def load_data():
 
 
 def update_data():
+    """Function to get realtime data every X minutes from Finnhub for every symbol and append to internal data structure. 
+       Returns None
+    """    
     for symbol in data:
         logging.info("Getting realtime data for: %s", symbol)
-        realtime_quote = get_realtime_quote(symbol)
         try:
-            df = data[symbol]
+            realtime_quote = get_realtime_quote(symbol)
         except Exception as e:
             logging.error(e)
+            continue 
+        try:
+            df = data[symbol]
+        except KeyError as e:
+            logging.error(e)
+            continue 
         # appends realtime quote to existing interal data structure
         df.at[df.shape[0] + 1, ("datetime", "price")] = (
             realtime_quote["datetime"],
@@ -163,6 +177,9 @@ def update_data():
 
 
 def main():
+    """ Creates and runs Flask app through waitress.
+    Runs a loop on a separate thread to continously update data every X minutes after server startup 
+    """    
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(HomePage, "/")
@@ -175,6 +192,8 @@ def main():
     @app.before_first_request
     def activate_job():
         def run_job():
+            """Task to update realtime data every X minutes 
+            """            
             last_data_update = datetime.now()
             while True:
                 next_data_update = last_data_update + timedelta(
@@ -189,7 +208,11 @@ def main():
         thread = threading.Thread(target=run_job)
         thread.start()
 
+
     def start_runner():
+        """Function to get the @app.before_first_request job started when server starts up.
+        Server makes a request to itself to get the task started. 
+        """        
         def start_loop():
             not_started = True
             while not_started:
@@ -210,6 +233,11 @@ def main():
 
 
 def server_start_up_tasks():
+    """ Startup tasks to run when the server starts. 
+    Tasks:
+    - add historical data from list of tickers provided
+    - if reload file provided and that symbol is in tickers provided, it loads from reload file
+    """    
     tickers = [ticker for ticker in args.tickers if ticker != reload_symbol]
     for ticker in tickers:
         add_ticker(
@@ -219,11 +247,15 @@ def server_start_up_tasks():
 
 
 if __name__ == "__main__":
+    # parses initial arguments, lower case all tickers and file names
     args = parser.parse_args()
     logging.info(args)
     args.reload = args.reload.lower()
     args.tickers = [args.tickers[i].lower() for i in range(3)] if len(args.tickers) > 3 else [ticker.lower() for ticker in args.tickers]
+
+    
     try:
+        # If reload file on server, it will load from there otherwise does nothing
         data_files = list(walk("data/"))[0][2]
         if args.reload in data_files:
             reload_symbol = args.reload.split("_")[0]
