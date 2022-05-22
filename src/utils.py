@@ -142,7 +142,7 @@ def get_price(df, query_datetime):
         df.loc[(df['datetime'] <= query_datetime)].tail(1)["price"].values
     )
     if len(price) == 1:
-        return price[0]
+        return int(price[0])
     elif len(price) == 0:
         return "No Data"
 
@@ -152,6 +152,6 @@ def get_signal(df, query_datetime):
         df.loc[(df['datetime'] <= query_datetime)].tail(1)["signal"].values
     )
     if len(signal) == 1:
-        return signal[0]
+        return int(signal[0])
     elif len(signal) == 0:
         return "No Data"
