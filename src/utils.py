@@ -5,9 +5,11 @@ from datetime import datetime
 import pandas as pd
 import requests
 import finnhub
+from configparser import ConfigParser
 
 logging = logging.getLogger()
-
+config = ConfigParser()
+config.read('src/config_file.txt')
 
 def get_alpha_vantage_historical_data(ticker, interval):
     """Get historical intraday data from Alpha Vantage API. Saves price series to {ticker}_price.csv
@@ -19,8 +21,10 @@ def get_alpha_vantage_historical_data(ticker, interval):
     Returns:
         pandas DF: DataFrame with datetime, price or empty DataFrame with no data/error
     """
+    logging.info("Getting historical data from Alpha Vantage API for %s", ticker)
+
     try:
-        ALPHA_VANTAGE_API_KEY = "6ZHQHNVQUR40SSMF"
+        ALPHA_VANTAGE_API_KEY = config['API_KEYS']['ALPHA_VANTAGE_API_KEY']
         CSV_URL = "https://www.alphavantage.co/query?"
         params = {
             "function": "TIME_SERIES_INTRADAY",
@@ -51,7 +55,7 @@ def get_alpha_vantage_historical_data(ticker, interval):
 
 
 def get_realtime_quote(ticker):
-    FINNHUB_API_KEY = "ca3sllqad3ia58rfhmjg"
+    FINNHUB_API_KEY =config['API_KEYS']['FINNHUB_API_KEY']
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     quote = finnhub_client.quote(ticker.upper())
     result = {
@@ -101,7 +105,6 @@ def calculate_avg_and_sigma(df, interval):
 
 
 def add_ticker(ticker, interval):
-    logging.info("Getting historical data from Alpha Vantage API...")
     df = get_alpha_vantage_historical_data(ticker, interval=interval)
     if df.shape[0] == 0:
         return "Invalid ticker"
@@ -135,11 +138,8 @@ def convert_utc_datetime(utc_datetime):
 
 
 def get_price(df, query_datetime):
-    current_time = datetime.now().strftime("%Y-%m-%d-%H:%M")
     price = (
-        df[(df["datetime"] < query_datetime) & (query_datetime <= current_time)]
-        .tail(1)["price"]
-        .values
+        df.loc[(df['datetime'] <= query_datetime)].tail(1)["price"].values
     )
     if len(price) == 1:
         return price[0]
@@ -148,13 +148,10 @@ def get_price(df, query_datetime):
 
 
 def get_signal(df, query_datetime):
-    current_time = datetime.now().strftime("%Y-%m-%d-%H:%M")
     signal = (
-        df[(df["datetime"] < query_datetime) & (query_datetime <= current_time)]
-        .tail(1)["signal"]
-        .values
+        df.loc[(df['datetime'] <= query_datetime)].tail(1)["signal"].values
     )
     if len(signal) == 1:
-        return int(signal[0])
+        return signal[0]
     elif len(signal) == 0:
         return "No Data"

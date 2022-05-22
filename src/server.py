@@ -44,6 +44,8 @@ class Price(Resource):
     def get(self, query_datetime):
         if query_datetime.lower() == "now":
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        elif (datetime.strptime(convert_utc_datetime(query_datetime), '%Y-%m-%d-%H:%M') > datetime.now()):
+            return "Server has no data"
         else:
             query_datetime = convert_utc_datetime(query_datetime)
 
@@ -63,6 +65,8 @@ class Signal(Resource):
     def get(self, query_datetime):
         if query_datetime.lower() == "now":
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
+        elif (datetime.strptime(convert_utc_datetime(query_datetime), '%Y-%m-%d-%H:%M') > datetime.now()):
+            return "Server has no data"
         else:
             query_datetime = convert_utc_datetime(query_datetime)
 
@@ -77,7 +81,7 @@ class Signal(Resource):
         else:
             return response
 
-
+ 
 class DelTicker(Resource):
     def get(self, ticker):
         ticker = ticker.lower()
