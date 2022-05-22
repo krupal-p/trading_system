@@ -171,8 +171,8 @@ def main():
     @app.before_first_request
     def activate_job():
         def run_job():
+            last_data_update = datetime.now()
             while True:
-                global last_data_update
                 next_data_update = last_data_update + timedelta(
                     seconds=args.minutes * 60
                 )
@@ -190,7 +190,7 @@ def main():
             not_started = True
             while not_started:
                 try:
-                    r = requests.get(f"http://127.0.0.1:{args.port}/")
+                    r = requests.get(url=f"http://127.0.0.1:{args.port}/")
                     if r.status_code == 200:
                         not_started = False
                 except:
@@ -202,8 +202,7 @@ def main():
     start_runner()
 
     logging.info("Starting trading server")
-    serve(app, host='0.0.0.0', port = args.port)
-    # app.run(debug=False, host='0.0.0.0', port=args.port)
+    serve(app, listen=f'*:{args.port}')
 
 
 def server_start_up_tasks():
@@ -219,7 +218,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging.info(args)
     args.reload = args.reload.lower()
-    args.tickers = [ticker.lower() for ticker in args.tickers]
+    args.tickers = [args.tickers[i].lower() for i in range(3)] if len(args.tickers) > 3 else [ticker.lower() for ticker in args.tickers]
     try:
         data_files = list(walk("data/"))[0][2]
         if args.reload in data_files:
@@ -229,7 +228,7 @@ if __name__ == "__main__":
 
         server_start_up_tasks()
         data = load_data()
-        last_data_update = datetime.now()
         main()
     except KeyboardInterrupt:
         logging.error("Server Terminated")
+        sys.exit(0)

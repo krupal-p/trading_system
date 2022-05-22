@@ -2,7 +2,6 @@ from io import StringIO
 import logging
 from dateutil import tz
 from datetime import datetime
-from operator import index
 import pandas as pd
 import requests
 import finnhub
@@ -18,7 +17,7 @@ def get_alpha_vantage_historical_data(ticker, interval):
         interval (int): Time interval for intraday prices in minutes
 
     Returns:
-        pandas DF: DataFrame with datetime, price
+        pandas DF: DataFrame with datetime, price or empty DataFrame with no data/error
     """
     try:
         ALPHA_VANTAGE_API_KEY = "6ZHQHNVQUR40SSMF"
