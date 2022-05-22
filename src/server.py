@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 import sys, os
 from os import walk
+import atexit
 
 import pandas as pd
 from flask import Flask
@@ -245,6 +246,10 @@ def server_start_up_tasks():
             interval=args.minutes,
         )
 
+def at_keyboard_interrupt():
+    sys.exit(0)
+
+atexit.register(at_keyboard_interrupt)
 
 if __name__ == "__main__":
     # parses initial arguments, lower case all tickers and file names
