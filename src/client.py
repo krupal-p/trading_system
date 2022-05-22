@@ -6,7 +6,12 @@ from client_argument_parser import parser
 import requests
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    filename=f"logs/client_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt='%Y-%m-%d %H:%M',
+    level=logging.INFO,
+)
 
 
 def get_base_url(ip_address="127.0.0.1", port=8000):
