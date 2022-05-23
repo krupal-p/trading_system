@@ -158,7 +158,7 @@ def update_data():
     """Function to get realtime data every X minutes from Finnhub for every symbol and append to internal data structure. 
        Returns None
     """    
-    for symbol in data:
+    for symbol in data.copy():
         logging.info("Getting realtime data for: %s", symbol)
         try:
             realtime_quote = get_realtime_quote(symbol)
