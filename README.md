@@ -10,14 +10,16 @@
 
 ## Getting Started
 
-### Enter gmail credentials in config_file.txt
-    `gmail_username = 'YOUR GMAIL ID`
-    `gmail_password = 'Password'`
+
   
 ### Installation in a virtual environment
     git clone https://github.com/krupal-p/trading_system.git
     cd trading_system
     pip3 install -r requirements.txt
+
+### Enter gmail credentials in config_file.txt
+    gmail_username = 'YOUR GMAIL ID
+    gmail_password = 'Password'
 
 ## Usage
 ### Starting up server with no options
