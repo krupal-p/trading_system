@@ -22,7 +22,7 @@ def get_alpha_vantage_historical_data(ticker, interval):
         interval (int): Time interval for intraday prices in minutes
 
     Returns:
-        pandas DF: DataFrame with datetime, price or empty DataFrame with no data/error
+        pandas DF or int: DataFrame with datetime, price or int. 1 = server error, 2 = invalid ticker
     """
     logging.info("Getting historical data from Alpha Vantage API for %s", ticker)
 
@@ -40,9 +40,9 @@ def get_alpha_vantage_historical_data(ticker, interval):
 
         r = requests.get(CSV_URL, params=params)
         if r.status_code == 200 and "Invalid API call" in r.text:
-            return pd.DataFrame()
+            return 2 
         elif r.status_code == 200 and 'Our standard API call frequency is 5 calls per minute' in r.text:
-            return pd.DataFrame()
+            return 1
 
         csvStringIO = StringIO(r.content.decode("utf-8"))
 
@@ -144,11 +144,14 @@ def add_ticker(ticker, interval):
         interval (int): Interval of time period
 
     Returns:
-        None: Return None when complete
+        str or None: Return "Invalid ticker" or "server error". Returns None if everything is ok.
     """    
     df = get_alpha_vantage_historical_data(ticker, interval=interval)
-    if df.shape[0] == 0:
+    if type(df) == int and df == 2:
         return "Invalid ticker"
+    elif type(df) == int and df == 1:
+        return "Server error"
+        
     df = calculate_avg_and_sigma(df, interval=interval)
     df = calculate_signal_and_pnl(df)
 
