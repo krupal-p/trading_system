@@ -8,7 +8,7 @@
 - pandas
 - finnhub-python
 
-### Getting Started
+## Getting Started
 
 ### Setting up virtual environment
     `pip3 install virtualenv`
