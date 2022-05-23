@@ -12,7 +12,7 @@
 
 
   
-### Installation in a virtual environment
+### Installation
     git clone https://github.com/krupal-p/trading_system.git
     cd trading_system
     pip3 install -r requirements.txt
