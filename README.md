@@ -1,4 +1,4 @@
-# Stock trading system using client-server model. 
+# Stock trading system
 
 ### Built with:
 - Flask
@@ -10,16 +10,16 @@
 
 ## Getting Started
 
-### Setting up virtual environment
-    pip3 install virtualenv
-    virtualenv .venv
-    source .venv/bin/activate
+### Enter gmail credentials in config_file.txt
+    `gmail_username = 'YOUR GMAIL ID`
+    `gmail_password = 'Password'`
+  
+### Installation in a virtual environment
+    git clone https://github.com/krupal-p/trading_system.git
+    cd trading_system
     pip3 install -r requirements.txt
 
-### Update values in CONFIG file
-
-    Update gmail_username and gmail_password
-
+## Usage
 ### Starting up server with no options
     python3 src/server.py
 
