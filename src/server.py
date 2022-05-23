@@ -267,10 +267,6 @@ if __name__ == "__main__":
     else:
         args.tickers = [ticker.lower() for ticker in args.tickers]
 
-
-    args.tickers = [args.tickers[i].lower() for i in range(3)] if len(args.tickers) > 3 else [ticker.lower() for ticker in args.tickers]
-
-    
     try:
         # If reload file on server, it will load from there otherwise does nothing
         data_files = list(walk("data/"))[0][2]
