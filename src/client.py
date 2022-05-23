@@ -105,7 +105,7 @@ def del_ticker(ticker):
         str: Returns 0=success, 1=server error, 2=ticker not found
     """    
     url = f"{base_url}/del_ticker/{ticker}"
-    r = requests.get(url=url, timeout=15)
+    r = requests.delete(url=url, timeout=15)
     print(r.text)
     return r.text
 
@@ -120,7 +120,7 @@ def add_ticker(ticker):
         str: Returns 0=success, 1=server error, 2=invalid ticker
     """    
     url = f"{base_url}/add_ticker/{ticker}"
-    r = requests.get(url=url, timeout=15)
+    r = requests.post(url=url, timeout=15)
     print(r.text)
     return r.text
 
@@ -132,7 +132,7 @@ def reset():
         str: return code: 0=success, 1=failure
     """    
     url = f"{base_url}/reset"
-    r = requests.get(url=url, timeout=15)
+    r = requests.put(url=url, timeout=15)
     print(r.text)
     return r.text
 

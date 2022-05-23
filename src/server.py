@@ -85,7 +85,7 @@ class Signal(Resource):
 
  
 class DelTicker(Resource):
-    def get(self, ticker):
+    def delete(self, ticker):
         ticker = ticker.lower()
         if ticker in data.keys():
             del data[ticker]
@@ -105,12 +105,14 @@ class DelTicker(Resource):
 
 
 class AddTicker(Resource):
-    def get(self, ticker):
+    def post(self, ticker):
         ticker = ticker.lower()
         try:
             add_ticker_status = add_ticker(ticker, args.minutes)
             if add_ticker_status == "Invalid ticker":
                 return 2
+            elif add_ticker_status == "Server error":
+                return 1
             data[ticker] = pd.read_csv(f"data/{ticker}_result.csv", header=0)
             return 0
         except Exception as e:
@@ -119,7 +121,7 @@ class AddTicker(Resource):
 
 
 class Reset(Resource):
-    def get(self):
+    def put(self):
         global data
         data = dict()
         try:
@@ -136,7 +138,7 @@ class Reset(Resource):
 
 
 def load_data():
-    """Function to load historical data on server startup
+    """Function to load historical data from csv files
 
     Returns:
         dict: dictionary with keys are symbol and DataFrame as values
@@ -229,7 +231,8 @@ def main():
 
     start_runner()
 
-    logging.info("Starting trading server")
+    logging.info("Trading server started")
+    print("Trading server started...accepting requests from client")
     serve(app, listen=f'*:{args.port}')
 
 
@@ -256,6 +259,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging.info(args)
     args.reload = args.reload.lower()
+    if len(args.tickers) > 3:
+        print('Max of 3 tickers. Processing first 3 only ')
+        args.tickers = [args.tickers[i].lower() for i in range(3)]
+    else:
+        args.tickers = [ticker.lower() for ticker in args.tickers]
+
+
     args.tickers = [args.tickers[i].lower() for i in range(3)] if len(args.tickers) > 3 else [ticker.lower() for ticker in args.tickers]
 
     
