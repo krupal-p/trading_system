@@ -12,7 +12,7 @@
 
 ### Setting up virtual environment
     pip3 install virtualenv
-    virtual .venv
+    virtualenv .venv
     source .venv/bin/activate
     pip3 install -r requirements.txt
 
