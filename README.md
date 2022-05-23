@@ -18,7 +18,7 @@
     pip3 install -r requirements.txt
 
 ### Enter gmail credentials in config_file.txt
-    gmail_username = 'YOUR GMAIL ID
+    gmail_username = 'GMAIL ID'
     gmail_password = 'Password'
 
 ## Usage
