@@ -18,8 +18,8 @@
     pip3 install -r requirements.txt
 
 ### Enter gmail credentials in config_file.txt
-    gmail_username = 'GMAIL ID'
-    gmail_password = 'Password'
+    gmail_username = ******@gmail.com
+    gmail_password = **********
 
 ## Usage
 ### Starting up server with no options
