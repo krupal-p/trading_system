@@ -20,7 +20,9 @@ from utils import (
     get_price,
     get_signal,
 )
-import threading, time, requests
+import threading
+import time
+import requests
 
 # Create Data and logs folder if they don't already exist
 if not os.path.exists("data/"):
