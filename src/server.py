@@ -33,8 +33,8 @@ if not os.path.exists("logs/"):
 # Logger configuration
 logging.basicConfig(
     filename=f"logs/server_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M',
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
     level=logging.INFO,
 )
 
@@ -48,7 +48,10 @@ class Price(Resource):
     def get(self, query_datetime):
         if query_datetime.lower() == "now":
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
-        elif (datetime.strptime(convert_utc_datetime(query_datetime), '%Y-%m-%d-%H:%M') > datetime.now()):
+        elif (
+            datetime.strptime(convert_utc_datetime(query_datetime), "%Y-%m-%d-%H:%M")
+            > datetime.now()
+        ):
             return "Server has no data"
         else:
             query_datetime = convert_utc_datetime(query_datetime)
@@ -69,7 +72,10 @@ class Signal(Resource):
     def get(self, query_datetime):
         if query_datetime.lower() == "now":
             query_datetime = datetime.now().strftime("%Y-%m-%d-%H:%M")
-        elif (datetime.strptime(convert_utc_datetime(query_datetime), '%Y-%m-%d-%H:%M') > datetime.now()):
+        elif (
+            datetime.strptime(convert_utc_datetime(query_datetime), "%Y-%m-%d-%H:%M")
+            > datetime.now()
+        ):
             return "Server has no data"
         else:
             query_datetime = convert_utc_datetime(query_datetime)
@@ -85,7 +91,7 @@ class Signal(Resource):
         else:
             return response
 
- 
+
 class DelTicker(Resource):
     def delete(self, ticker):
         ticker = ticker.lower()
@@ -144,7 +150,7 @@ def load_data():
 
     Returns:
         dict: dictionary with keys are symbol and DataFrame as values
-    """    
+    """
     data = dict()
     data_files = [file for file in list(walk("data/"))[0][2] if "_result.csv" in file]
     for file in data_files:
@@ -155,21 +161,21 @@ def load_data():
 
 
 def update_data():
-    """Function to get realtime data every X minutes from Finnhub for every symbol and append to internal data structure. 
-       Returns None
-    """    
+    """Function to get realtime data every X minutes from Finnhub for every symbol and append to internal data structure.
+    Returns None
+    """
     for symbol in data.copy():
         logging.info("Getting realtime data for: %s", symbol)
         try:
             realtime_quote = get_realtime_quote(symbol)
         except Exception as e:
             logging.error(e)
-            continue 
+            continue
         try:
             df = data[symbol]
         except KeyError as e:
             logging.error(e)
-            continue 
+            continue
         # appends realtime quote to existing interal data structure
         df.at[df.shape[0] + 1, ("datetime", "price")] = (
             realtime_quote["datetime"],
@@ -182,9 +188,9 @@ def update_data():
 
 
 def main():
-    """ Creates and runs Flask app through waitress.
-    Runs a loop on a separate thread to continously update data every X minutes after server startup 
-    """    
+    """Creates and runs Flask app through waitress.
+    Runs a loop on a separate thread to continously update data every X minutes after server startup
+    """
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(HomePage, "/")
@@ -197,8 +203,7 @@ def main():
     @app.before_first_request
     def activate_job():
         def run_job():
-            """Task to update realtime data every X minutes 
-            """            
+            """Task to update realtime data every X minutes"""
             last_data_update = datetime.now()
             while True:
                 next_data_update = last_data_update + timedelta(
@@ -213,11 +218,11 @@ def main():
         thread = threading.Thread(target=run_job)
         thread.start()
 
-
     def start_runner():
         """Function to get the @app.before_first_request job started when server starts up.
-        Server makes a request to itself to get the task started. 
-        """        
+        Server makes a request to itself to get the task started.
+        """
+
         def start_loop():
             not_started = True
             while not_started:
@@ -235,15 +240,15 @@ def main():
 
     logging.info("Trading server started")
     print("Trading server started...accepting requests from client")
-    serve(app, listen=f'*:{args.port}')
+    serve(app, listen=f"*:{args.port}")
 
 
 def server_start_up_tasks():
-    """ Startup tasks to run when the server starts. 
+    """Startup tasks to run when the server starts.
     Tasks:
     - add historical data from list of tickers provided
     - if reload file provided and that symbol is in tickers provided, it loads from reload file
-    """    
+    """
     tickers = [ticker for ticker in args.tickers if ticker != reload_symbol]
     for ticker in tickers:
         add_ticker(
@@ -251,8 +256,10 @@ def server_start_up_tasks():
             interval=args.minutes,
         )
 
+
 def at_keyboard_interrupt():
     sys.exit(0)
+
 
 atexit.register(at_keyboard_interrupt)
 
@@ -262,7 +269,7 @@ if __name__ == "__main__":
     logging.info(args)
     args.reload = args.reload.lower()
     if len(args.tickers) > 3:
-        print('Max of 3 tickers. Processing first 3 only ')
+        print("Max of 3 tickers. Processing first 3 only ")
         args.tickers = [args.tickers[i].lower() for i in range(3)]
     else:
         args.tickers = [ticker.lower() for ticker in args.tickers]

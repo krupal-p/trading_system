@@ -9,8 +9,8 @@ from mail import send_email
 
 logging.basicConfig(
     filename=f"logs/client_log_{datetime.utcnow().strftime('%Y-%m-%d-%H:%M')}",
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M',
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
     level=logging.INFO,
 )
 
@@ -24,7 +24,7 @@ def get_base_url(ip_address="127.0.0.1", port=8000):
 
     Returns:
         str: Base url
-    """    
+    """
     return f"http://{ip_address}:{port}"
 
 
@@ -36,7 +36,7 @@ def is_valid_server_address(server_address):
 
     Returns:
         bool: Bool to indicate whether server_address is valid or not
-    """    
+    """
     is_valid = re.fullmatch("^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}:\d{1,5}$", server_address)
     return True if is_valid else False
 
@@ -49,7 +49,7 @@ def is_valid_datetime(datetime_input):
 
     Returns:
         bool: Bool to indicate whether datetime is valid or not
-    """    
+    """
     date_format = "%Y-%m-%d-%H:%M"
     try:
         datetime.strptime(datetime_input, date_format)
@@ -67,7 +67,7 @@ def get_price(datetime_input):
 
     Returns:
         dict or str: Return dict with symbols as keys and prices as values. Or 'Server has no data'
-    """    
+    """
     url = f"{base_url}/price/{datetime_input}"
     r = requests.get(url=url, timeout=15)
     print(r.text)
@@ -85,7 +85,7 @@ def get_signal(datetime_input):
 
     Returns:
         dict or str: Return dict with symbols as keys and signal as values. Or 'Server has no data'
-    """    
+    """
     url = f"{base_url}/signal/{datetime_input}"
     r = requests.get(url=url, timeout=15)
     print(r.text)
@@ -103,7 +103,7 @@ def del_ticker(ticker):
 
     Returns:
         str: Returns 0=success, 1=server error, 2=ticker not found
-    """    
+    """
     url = f"{base_url}/del_ticker/{ticker}"
     r = requests.delete(url=url, timeout=15)
     print(r.text)
@@ -118,7 +118,7 @@ def add_ticker(ticker):
 
     Returns:
         str: Returns 0=success, 1=server error, 2=invalid ticker
-    """    
+    """
     url = f"{base_url}/add_ticker/{ticker}"
     r = requests.post(url=url, timeout=15)
     print(r.text)
@@ -126,15 +126,16 @@ def add_ticker(ticker):
 
 
 def reset():
-    """Requests to delete all data from server 
+    """Requests to delete all data from server
 
     Returns:
         str: return code: 0=success, 1=failure
-    """    
+    """
     url = f"{base_url}/reset"
     r = requests.put(url=url, timeout=15)
     print(r.text)
     return r.text
+
 
 def main():
     if args.price and (args.price.lower() == "now" or is_valid_datetime(args.price)):
@@ -160,7 +161,7 @@ if __name__ == "__main__":
             r = requests.get(url=base_url + "/", timeout=15)
             print(r.text)
         else:
-            print('Invalid server address')
+            print("Invalid server address")
         main()
     except Exception as e:
         send_email()

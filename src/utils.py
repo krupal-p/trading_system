@@ -11,12 +11,13 @@ logging = logging.getLogger()
 
 # Loads the config file for API keys
 config = ConfigParser()
-config.read('src/config_file.txt')
+config.read("src/config_file.txt")
+
 
 def get_alpha_vantage_historical_data(ticker, interval):
-    """Get historical intraday data from Alpha Vantage API for given ticker.  
+    """Get historical intraday data from Alpha Vantage API for given ticker.
     Returns empty DataFrame if API rate limit reached or ticker is invalid
-    
+
     Args:
         ticker (str): Stock symbol
         interval (int): Time interval for intraday prices in minutes
@@ -27,7 +28,7 @@ def get_alpha_vantage_historical_data(ticker, interval):
     logging.info("Getting historical data from Alpha Vantage API for %s", ticker)
 
     try:
-        ALPHA_VANTAGE_API_KEY = config['API_KEYS']['ALPHA_VANTAGE_API_KEY']
+        ALPHA_VANTAGE_API_KEY = config["API_KEYS"]["ALPHA_VANTAGE_API_KEY"]
         CSV_URL = "https://www.alphavantage.co/query?"
         params = {
             "function": "TIME_SERIES_INTRADAY",
@@ -40,8 +41,11 @@ def get_alpha_vantage_historical_data(ticker, interval):
 
         r = requests.get(CSV_URL, params=params)
         if r.status_code == 200 and "Invalid API call" in r.text:
-            return 2 
-        elif r.status_code == 200 and 'Our standard API call frequency is 5 calls per minute' in r.text:
+            return 2
+        elif (
+            r.status_code == 200
+            and "Our standard API call frequency is 5 calls per minute" in r.text
+        ):
             return 1
 
         csvStringIO = StringIO(r.content.decode("utf-8"))
@@ -67,9 +71,9 @@ def get_realtime_quote(ticker):
         ticker (str): Stock symbol
 
     Returns:
-        dict: Dictionary with datetime and price as keys and their respective values 
-    """    
-    FINNHUB_API_KEY =config['API_KEYS']['FINNHUB_API_KEY']
+        dict: Dictionary with datetime and price as keys and their respective values
+    """
+    FINNHUB_API_KEY = config["API_KEYS"]["FINNHUB_API_KEY"]
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     quote = finnhub_client.quote(ticker.upper())
     result = {
@@ -87,7 +91,7 @@ def calculate_signal_and_pnl(df):
 
     Returns:
         df (DataFrame): Return modified DataFrame with signal, pnl and position
-    """    
+    """
     df["signal"] = 0
     df["pnl"] = 0
     df["position"] = 0
@@ -96,14 +100,15 @@ def calculate_signal_and_pnl(df):
         current_price = df.iloc[i]["price"]
         avg_price = df.iloc[i]["S_avg"]
         sigma = df.iloc[i]["sigma"]
+        next_price = df.iloc[i + 1]["price"]
 
         if current_price > (avg_price + sigma):
             df.at[i, "signal"] = 1
-            position += 1
+            position += next_price
             df.at[i + 1, "position"] = position
         elif current_price < (avg_price - sigma):
             df.at[i, "signal"] = -1
-            position -= 1
+            position -= next_price
             df.at[i + 1, "position"] = position
         else:
             df.at[i, "signal"] = 0
@@ -128,7 +133,7 @@ def calculate_avg_and_sigma(df, interval):
 
     Returns:
         df (DataFrame): Return modified DataFrmae with avg price and sigma
-    """    
+    """
     window = 24 * 60 // interval
     df["S_avg"] = df["price"].rolling(window=window).mean().apply(lambda x: round(x, 2))
     df["sigma"] = df["price"].rolling(window=window).std()
@@ -145,13 +150,13 @@ def add_ticker(ticker, interval):
 
     Returns:
         str or None: Return "Invalid ticker" or "server error". Returns None if everything is ok.
-    """    
+    """
     df = get_alpha_vantage_historical_data(ticker, interval=interval)
     if type(df) == int and df == 2:
         return "Invalid ticker"
     elif type(df) == int and df == 1:
         return "Server error"
-        
+
     df = calculate_avg_and_sigma(df, interval=interval)
     df = calculate_signal_and_pnl(df)
 
@@ -190,10 +195,8 @@ def get_price(df, query_datetime):
 
     Returns:
         float or str: Returns price or No Data
-    """    
-    price = (
-        df.loc[(df['datetime'] <= query_datetime)].tail(1)["price"].values
-    )
+    """
+    price = df.loc[(df["datetime"] <= query_datetime)].tail(1)["price"].values
     if len(price) == 1:
         return price[0]
     elif len(price) == 0:
@@ -209,10 +212,8 @@ def get_signal(df, query_datetime):
 
     Returns:
         int or str: Returns signal or No Data
-    """    
-    signal = (
-        df.loc[(df['datetime'] <= query_datetime)].tail(1)["signal"].values
-    )
+    """
+    signal = df.loc[(df["datetime"] <= query_datetime)].tail(1)["signal"].values
     if len(signal) == 1:
         return int(signal[0])
     elif len(signal) == 0:
